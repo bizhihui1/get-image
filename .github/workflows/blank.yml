@@ -2,11 +2,13 @@ name: Get LocalStack
 on: workflow_dispatch
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     steps:
       - run: |
-          docker pull --platform linux/arm64 localstack/localstack:latest
-          docker save localstack/localstack:latest | gzip > localstack.tar.gz
+          docker pull localstack/localstack:latest
+          docker save -o localstack.tar localstack/localstack:latest
+          gzip localstack.tar
+          ls -lh localstack.tar.gz
       - uses: actions/upload-artifact@v4
         with:
           name: localstack-arm64
