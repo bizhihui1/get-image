@@ -1,15 +1,39 @@
-name: Get LocalStack 4.14
-on: workflow_dispatch
+name: Download Terraform AWS Provider
+
+on:
+  workflow_dispatch: # 允许手动点击按钮触发
+
 jobs:
-  build:
-    runs-on: ubuntu-24.04-arm
+  download:
+    runs-on: ubuntu-latest
     steps:
-      - run: |
-          docker pull localstack/localstack:4.14.0
-          docker save -o localstack.tar localstack/localstack:4.14.0
-          gzip localstack.tar
-          ls -lh localstack.tar.gz
-      - uses: actions/upload-artifact@v4
+      - name: Create Terraform Config
+        run: |
+          mkdir -p workspace
+          cat << 'EOF' > workspace/main.tf
+          terraform {
+            required_providers {
+              aws = {
+                source  = "hashicorp/aws"
+                version = "~> 5.0"
+              }
+            }
+          }
+          EOF
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
         with:
-          name: localstack-4.14-arm64
-          path: localstack.tar.gz
+          terraform_wrapper: false
+
+      - name: Mirror Linux ARM64 Provider
+        run: |
+          cd workspace
+          terraform providers mirror -platform=linux_arm64 ./offline-plugins
+          tar -czvf ../aws-provider-linux-arm64.tar.gz offline-plugins
+
+      - name: Upload Offline Package
+        uses: actions/upload-artifact@v4
+        with:
+          name: aws-provider-linux-arm64
+          path: aws-provider-linux-arm64.tar.gz
